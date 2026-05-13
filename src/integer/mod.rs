@@ -8,6 +8,7 @@ use std::ops::Neg;
 
 mod arithmetic;
 mod bitwise;
+mod macros;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Sign {
@@ -145,7 +146,11 @@ impl Integer {
 	}
 
 	pub fn is_zero(&self) -> bool {
-		return self.bit_length == 0;
+		return self.bit_length == 0 && self.sign == Sign::NoSign;
+	}
+
+	pub fn is_negative(&self) -> bool {
+		return self.sign == Sign::Negative;
 	}
 }
 

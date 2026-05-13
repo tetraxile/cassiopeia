@@ -1,4 +1,5 @@
-use crate::integer::{Integer, Sign};
+use crate::integer::{Integer, Sign, macros::integer_binary_op};
+use itertools::{EitherOrBoth::*, Itertools};
 use rand::prelude::*;
 use std::cmp::Ordering;
 use std::iter::zip;
@@ -29,24 +30,23 @@ impl Add<&Integer> for &Integer {
 
 	fn add(self, rhs: &Integer) -> Self::Output {
 		let adder = |lhs: &Integer, rhs: &Integer, out_sign: Sign, carry_in: bool, swap: bool| {
-			let mut a = lhs.bytes.clone();
-			let mut b = rhs.bytes.clone();
-
-			// make sure both vectors are the same size (pad with zeroes)
-			if b.len() > a.len() {
-				a.extend(vec![0; b.len() - a.len()]);
-			} else if a.len() > b.len() {
-				b.extend(vec![0; a.len() - b.len()]);
-			}
+			let mut lhs = lhs;
+			let mut rhs = rhs;
 
 			if swap {
-				std::mem::swap(&mut a, &mut b);
+				std::mem::swap(&mut lhs, &mut rhs);
 			}
 
 			let mut carry = carry_in;
-			let mut bytes = zip(a.iter(), b.iter())
-				.map(|(a, b)| {
-					let b = if carry_in { !*b } else { *b };
+			let mut bytes = Itertools::zip_longest(lhs.bytes.iter(), rhs.bytes.iter())
+				.map(|pair| {
+					let (a, b) = match pair {
+						Both(l, r) => (*l, *r),
+						Left(l) => (*l, 0u8),
+						Right(r) => (0u8, *r),
+					};
+
+					let b = if carry_in { !b } else { b };
 					let sum: u8;
 					(sum, carry) = a.carrying_add(b, carry);
 					sum
@@ -57,10 +57,11 @@ impl Add<&Integer> for &Integer {
 				bytes.push(1);
 			}
 
-			let byte_length = match bytes.iter().rposition(|b| *b != 0) {
-				Some(l) => l + 1,
-				None => todo!(),
-			};
+			let byte_length = bytes
+				.iter()
+				.rposition(|b| *b != 0)
+				.expect("sum is never zero, because of the cases when this closure is called")
+				+ 1;
 			bytes = bytes[..byte_length].to_vec();
 
 			let bit_length =
@@ -116,64 +117,17 @@ impl Add<Integer> for Integer {
 	}
 }
 
-macro_rules! integer_add {
-	($($type:ident),*) => {
-    $(
-      impl Add<&$type> for &Integer {
-        type Output = Integer;
-
-        fn add(self, rhs: &$type) -> Self::Output {
-          self + Integer::from(rhs)
-        }
-      }
-
-      impl Add<&$type> for Integer {
-        type Output = Integer;
-
-        fn add(self, rhs: &$type) -> Self::Output {
-          self + Integer::from(rhs)
-        }
-      }
-
-      impl Add<$type> for &Integer {
-        type Output = Integer;
-
-        fn add(self, rhs: $type) -> Self::Output {
-          self + Integer::from(rhs)
-        }
-      }
-
-      impl Add<$type> for Integer {
-        type Output = Integer;
-
-        fn add(self, rhs: $type) -> Self::Output {
-          self + Integer::from(rhs)
-        }
-      }
-    )*
-  };
+impl AddAssign<&Integer> for Integer {
+	fn add_assign(&mut self, rhs: &Integer) {
+		*self = &*self + rhs
+	}
 }
 
-macro_rules! integer_add_assign {
-	($($type:ident),*) => {
-    $(
-      impl AddAssign<&$type> for Integer {
-        fn add_assign(&mut self, rhs: &$type) {
-          *self = &*self + rhs
-        }
-      }
-
-      impl AddAssign<$type> for Integer {
-        fn add_assign(&mut self, rhs: $type) {
-          *self = &*self + rhs
-        }
-      }
-    )*
-  };
+impl AddAssign<Integer> for Integer {
+	fn add_assign(&mut self, rhs: Integer) {
+		*self = &*self + rhs
+	}
 }
-
-integer_add!(i64, i32, i16, i8, u64, u32, u16, u8);
-integer_add_assign!(Integer, i64, i32, i16, i8, u64, u32, u16, u8);
 
 impl Sub<&Integer> for &Integer {
 	type Output = Integer;
@@ -207,64 +161,20 @@ impl Sub<Integer> for Integer {
 	}
 }
 
-macro_rules! integer_sub {
-	($($type:ident),*) => {
-    $(
-      impl Sub<&$type> for &Integer {
-        type Output = Integer;
-
-        fn sub(self, rhs: &$type) -> Self::Output {
-          self - Integer::from(rhs)
-        }
-      }
-
-      impl Sub<&$type> for Integer {
-        type Output = Integer;
-
-        fn sub(self, rhs: &$type) -> Self::Output {
-          self - Integer::from(rhs)
-        }
-      }
-
-      impl Sub<$type> for &Integer {
-        type Output = Integer;
-
-        fn sub(self, rhs: $type) -> Self::Output {
-          self - Integer::from(rhs)
-        }
-      }
-
-      impl Sub<$type> for Integer {
-        type Output = Integer;
-
-        fn sub(self, rhs: $type) -> Self::Output {
-          self - Integer::from(rhs)
-        }
-      }
-    )*
-  };
+impl SubAssign<&Integer> for Integer {
+	fn sub_assign(&mut self, rhs: &Integer) {
+		*self = &*self - rhs
+	}
 }
 
-macro_rules! integer_sub_assign {
-	($($type:ident),*) => {
-    $(
-      impl SubAssign<&$type> for Integer {
-        fn sub_assign(&mut self, rhs: &$type) {
-          *self = &*self - rhs
-        }
-      }
-
-      impl SubAssign<$type> for Integer {
-        fn sub_assign(&mut self, rhs: $type) {
-          *self = &*self - rhs
-        }
-      }
-    )*
-  };
+impl SubAssign<Integer> for Integer {
+	fn sub_assign(&mut self, rhs: Integer) {
+		*self = &*self - rhs
+	}
 }
 
-integer_sub!(i64, i32, i16, i8, u64, u32, u16, u8);
-integer_sub_assign!(Integer, i64, i32, i16, i8, u64, u32, u16, u8);
+integer_binary_op!(Add, add, +; isize, i64, i32, i16, i8, usize, u64, u32, u16, u8);
+integer_binary_op!(Sub, sub, -; isize, i64, i32, i16, i8, usize, u64, u32, u16, u8);
 
 #[cfg(test)]
 mod tests {

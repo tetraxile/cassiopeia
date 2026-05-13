@@ -13,6 +13,10 @@ fn main() {
 	println!("{na:b} + {nb:b} = -{:b}", -(a + b));
 	println!("{na:b} + {nb:b} = {:b}", &na + &nb);
 
+	let mut nc = Integer::from(123);
+	nc += 100;
+	println!("{nc:b}");
+
 	// let a = Integer::from(i64::MAX);
 	// let b = Integer::from(123);
 
