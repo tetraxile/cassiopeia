@@ -93,83 +93,11 @@ impl Add<&Integer> for &Integer {
 	}
 }
 
-impl Add<&Integer> for Integer {
-	type Output = Integer;
-
-	fn add(self, rhs: &Integer) -> Self::Output {
-		&self + rhs
-	}
-}
-
-impl Add<Integer> for &Integer {
-	type Output = Integer;
-
-	fn add(self, rhs: Integer) -> Self::Output {
-		self + &rhs
-	}
-}
-
-impl Add<Integer> for Integer {
-	type Output = Integer;
-
-	fn add(self, rhs: Integer) -> Self::Output {
-		self + &rhs
-	}
-}
-
-impl AddAssign<&Integer> for Integer {
-	fn add_assign(&mut self, rhs: &Integer) {
-		*self = &*self + rhs
-	}
-}
-
-impl AddAssign<Integer> for Integer {
-	fn add_assign(&mut self, rhs: Integer) {
-		*self = &*self + rhs
-	}
-}
-
 impl Sub<&Integer> for &Integer {
 	type Output = Integer;
 
 	fn sub(self, rhs: &Integer) -> Self::Output {
 		self + -rhs
-	}
-}
-
-impl Sub<&Integer> for Integer {
-	type Output = Integer;
-
-	fn sub(self, rhs: &Integer) -> Self::Output {
-		self + -rhs
-	}
-}
-
-impl Sub<Integer> for &Integer {
-	type Output = Integer;
-
-	fn sub(self, rhs: Integer) -> Self::Output {
-		self + -rhs
-	}
-}
-
-impl Sub<Integer> for Integer {
-	type Output = Integer;
-
-	fn sub(self, rhs: Integer) -> Self::Output {
-		self + -rhs
-	}
-}
-
-impl SubAssign<&Integer> for Integer {
-	fn sub_assign(&mut self, rhs: &Integer) {
-		*self = &*self - rhs
-	}
-}
-
-impl SubAssign<Integer> for Integer {
-	fn sub_assign(&mut self, rhs: Integer) {
-		*self = &*self - rhs
 	}
 }
 

@@ -43,42 +43,6 @@ impl Shl<&usize> for &Integer {
 	}
 }
 
-impl Shl<usize> for &Integer {
-	type Output = Integer;
-
-	fn shl(self, rhs: usize) -> Self::Output {
-		self << &rhs
-	}
-}
-
-impl Shl<&usize> for Integer {
-	type Output = Integer;
-
-	fn shl(self, rhs: &usize) -> Self::Output {
-		&self << rhs
-	}
-}
-
-impl Shl<usize> for Integer {
-	type Output = Integer;
-
-	fn shl(self, rhs: usize) -> Self::Output {
-		&self << rhs
-	}
-}
-
-impl ShlAssign<&usize> for Integer {
-	fn shl_assign(&mut self, rhs: &usize) {
-		*self = &*self << *rhs;
-	}
-}
-
-impl ShlAssign<usize> for Integer {
-	fn shl_assign(&mut self, rhs: usize) {
-		*self = &*self << rhs;
-	}
-}
-
 impl Shr<&usize> for &Integer {
 	type Output = Integer;
 
@@ -112,42 +76,6 @@ impl Shr<&usize> for &Integer {
 	}
 }
 
-impl Shr<usize> for &Integer {
-	type Output = Integer;
-
-	fn shr(self, rhs: usize) -> Self::Output {
-		self >> &rhs
-	}
-}
-
-impl Shr<&usize> for Integer {
-	type Output = Integer;
-
-	fn shr(self, rhs: &usize) -> Self::Output {
-		&self >> rhs
-	}
-}
-
-impl Shr<usize> for Integer {
-	type Output = Integer;
-
-	fn shr(self, rhs: usize) -> Self::Output {
-		&self >> rhs
-	}
-}
-
-impl ShrAssign<&usize> for Integer {
-	fn shr_assign(&mut self, rhs: &usize) {
-		*self = &*self >> *rhs;
-	}
-}
-
-impl ShrAssign<usize> for Integer {
-	fn shr_assign(&mut self, rhs: usize) {
-		*self = &*self >> rhs;
-	}
-}
-
 impl BitAnd<&Integer> for &Integer {
 	type Output = Integer;
 
@@ -174,42 +102,6 @@ impl BitAnd<&Integer> for &Integer {
 				}
 			}
 		}
-	}
-}
-
-impl BitAnd<&Integer> for Integer {
-	type Output = Integer;
-
-	fn bitand(self, rhs: &Integer) -> Self::Output {
-		&self & rhs
-	}
-}
-
-impl BitAnd<Integer> for &Integer {
-	type Output = Integer;
-
-	fn bitand(self, rhs: Integer) -> Self::Output {
-		self & &rhs
-	}
-}
-
-impl BitAnd<Integer> for Integer {
-	type Output = Integer;
-
-	fn bitand(self, rhs: Integer) -> Self::Output {
-		self & &rhs
-	}
-}
-
-impl BitAndAssign<&Integer> for Integer {
-	fn bitand_assign(&mut self, rhs: &Integer) {
-		*self = &*self & rhs
-	}
-}
-
-impl BitAndAssign<Integer> for Integer {
-	fn bitand_assign(&mut self, rhs: Integer) {
-		*self = &*self & rhs
 	}
 }
 
@@ -246,42 +138,6 @@ impl BitOr<&Integer> for &Integer {
 	}
 }
 
-impl BitOr<&Integer> for Integer {
-	type Output = Integer;
-
-	fn bitor(self, rhs: &Integer) -> Self::Output {
-		&self | rhs
-	}
-}
-
-impl BitOr<Integer> for &Integer {
-	type Output = Integer;
-
-	fn bitor(self, rhs: Integer) -> Self::Output {
-		self | &rhs
-	}
-}
-
-impl BitOr<Integer> for Integer {
-	type Output = Integer;
-
-	fn bitor(self, rhs: Integer) -> Self::Output {
-		self | &rhs
-	}
-}
-
-impl BitOrAssign<&Integer> for Integer {
-	fn bitor_assign(&mut self, rhs: &Integer) {
-		*self = &*self | rhs
-	}
-}
-
-impl BitOrAssign<Integer> for Integer {
-	fn bitor_assign(&mut self, rhs: Integer) {
-		*self = &*self | rhs
-	}
-}
-
 impl BitXor<&Integer> for &Integer {
 	type Output = Integer;
 
@@ -312,42 +168,6 @@ impl BitXor<&Integer> for &Integer {
 				}
 			}
 		}
-	}
-}
-
-impl BitXor<&Integer> for Integer {
-	type Output = Integer;
-
-	fn bitxor(self, rhs: &Integer) -> Self::Output {
-		&self ^ rhs
-	}
-}
-
-impl BitXor<Integer> for &Integer {
-	type Output = Integer;
-
-	fn bitxor(self, rhs: Integer) -> Self::Output {
-		self ^ &rhs
-	}
-}
-
-impl BitXor<Integer> for Integer {
-	type Output = Integer;
-
-	fn bitxor(self, rhs: Integer) -> Self::Output {
-		self ^ &rhs
-	}
-}
-
-impl BitXorAssign<&Integer> for Integer {
-	fn bitxor_assign(&mut self, rhs: &Integer) {
-		*self = &*self ^ rhs
-	}
-}
-
-impl BitXorAssign<Integer> for Integer {
-	fn bitxor_assign(&mut self, rhs: Integer) {
-		*self = &*self ^ rhs
 	}
 }
 
