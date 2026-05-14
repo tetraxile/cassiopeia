@@ -3,7 +3,7 @@ use itertools::{EitherOrBoth::*, Itertools};
 use rand::prelude::*;
 use std::cmp::Ordering;
 use std::iter::zip;
-use std::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 impl Neg for &Integer {
 	type Output = Integer;
@@ -101,8 +101,31 @@ impl Sub<&Integer> for &Integer {
 	}
 }
 
+impl Mul<&Integer> for &Integer {
+	type Output = Integer;
+
+	fn mul(self, rhs: &Integer) -> Self::Output {
+		if self.is_zero() || rhs.is_zero() {
+			return Integer::zero();
+		}
+
+		let is_negative = self.sign != rhs.sign;
+		let mut out = Integer::zero();
+		let rhs = rhs.clone().abs();
+
+		self.iter_bits().enumerate().for_each(|(i, b)| {
+			if b {
+				out += &rhs << i;
+			}
+		});
+
+		if is_negative { -out } else { out }
+	}
+}
+
 integer_binary_op!(Add, add, +; isize, i64, i32, i16, i8, usize, u64, u32, u16, u8);
 integer_binary_op!(Sub, sub, -; isize, i64, i32, i16, i8, usize, u64, u32, u16, u8);
+integer_binary_op!(Mul, mul, *; isize, i64, i32, i16, i8, usize, u64, u32, u16, u8);
 
 #[cfg(test)]
 mod tests {
@@ -112,7 +135,7 @@ mod tests {
 	fn test_add() {
 		let mut rng = rand::rng();
 
-		for _ in 0..1000 {
+		for _ in 0..10000 {
 			let a: i64 = rng.random_range(-1024..1024);
 			let b: i64 = rng.random_range(-1024..1024);
 			let na = Integer::from(a);
@@ -127,7 +150,7 @@ mod tests {
 	fn test_sub() {
 		let mut rng = rand::rng();
 
-		for _ in 0..1000 {
+		for _ in 0..10000 {
 			let a: i64 = rng.random_range(-1024..1024);
 			let b: i64 = rng.random_range(-1024..1024);
 			let na = Integer::from(a);
@@ -135,6 +158,23 @@ mod tests {
 			assert_eq!(Integer::from(a - b), &na - &nb, "{na:b} - {nb:b}");
 			assert_eq!(Integer::from(a - 0), &na - 0, "{na:b} - 0");
 			assert_eq!(Integer::from(0 - b), Integer::zero() - &nb, "0 - {nb:b}");
+		}
+	}
+
+	#[test]
+	fn test_mul() {
+		let mut rng = rand::rng();
+
+		for _ in 0..10000 {
+			let max = i32::MAX as i64;
+			let min = i32::MIN as i64;
+			let a: i64 = rng.random_range(min..max);
+			let b: i64 = rng.random_range(min..max);
+			let na = Integer::from(a);
+			let nb = Integer::from(b);
+			assert_eq!(Integer::from(a * b), &na * &nb, "{na:b} * {nb:b}");
+			assert_eq!(Integer::from(a * 0), &na * 0, "{na:b} * 0");
+			assert_eq!(Integer::from(0 * b), Integer::zero() * &nb, "0 * {nb:b}");
 		}
 	}
 }

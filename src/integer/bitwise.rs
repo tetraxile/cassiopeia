@@ -185,7 +185,7 @@ mod tests {
 	fn test_shift() {
 		let mut rng = rand::rng();
 
-		for _ in 0..1000 {
+		for _ in 0..10000 {
 			let a: i64 = rng.random_range(-1024..1024);
 			let b: usize = rng.random_range(..50);
 			let na = Integer::from(a);
@@ -195,7 +195,7 @@ mod tests {
 			assert_eq!(Integer::from(0i64 << b), &nz << b, "{nz:b} << b");
 		}
 
-		for _ in 0..1000 {
+		for _ in 0..10000 {
 			let a: i64 = rng.random_range(-1024..1024);
 			let b: usize = rng.random_range(..50);
 			let na = Integer::from(a);
@@ -214,7 +214,7 @@ mod tests {
 	fn test_bitand() {
 		let mut rng = rand::rng();
 
-		for _ in 0..1000 {
+		for _ in 0..10000 {
 			let a: u64 = rng.random_range(..1024);
 			let b: u64 = rng.random_range(..1024);
 			let na = Integer::from(a);
@@ -229,7 +229,7 @@ mod tests {
 	fn test_bitor() {
 		let mut rng = rand::rng();
 
-		for _ in 0..1000 {
+		for _ in 0..10000 {
 			let a: u64 = rng.random_range(..1024);
 			let b: u64 = rng.random_range(..1024);
 			let na = Integer::from(a);
@@ -244,7 +244,7 @@ mod tests {
 	fn test_bitxor() {
 		let mut rng = rand::rng();
 
-		for _ in 0..1000 {
+		for _ in 0..10000 {
 			let a: u64 = rng.random_range(..1024);
 			let b: u64 = rng.random_range(..1024);
 			let na = Integer::from(a);
