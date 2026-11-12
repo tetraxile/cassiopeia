@@ -1,33 +1,14 @@
-use cassiopeia::Integer;
+use winit::event_loop::{ControlFlow, EventLoop};
+
+use cassiopeia::App;
 
 fn main() {
-    // println!("{:b}", -0b1101011001);
-    let a = -0b1101011001;
-    let b = 0b10110101;
-    let na = Integer::from(a);
-    let nb = Integer::from(b);
-    // let a = Integer::from(0b1110010100111);
-    // let b = Integer::from(0b11011110001);
-    // println!("{na:b}");
-    // println!("{nb:b}");
-    // println!("{na:b} + {nb:b} = -{:b}", -(a + b));
-    // println!("{na:b} + {nb:b} = {:b}", &na + &nb);
+    tracing_subscriber::fmt::init();
 
-    // println!("{na}");
-    // println!("{nb}");
-    // println!("{na} + {nb} = -{}", -(a + b));
-    // println!("{na} + {nb} = {}", &na + &nb);
+    let event_loop = EventLoop::new().unwrap();
 
-    // let mut nc = Integer::from(123);
-    // nc += 100;
-    // println!("{nc:b}");
+    event_loop.set_control_flow(ControlFlow::Wait);
 
-    // let a = Integer::from(123);
-    // println!("{a}");
-
-    // let a = Integer::from(i64::MAX);
-    // let b = Integer::from(123);
-
-    // let c = &a + &b;
-    // let d = &a + 100;
+    let mut app = App::default();
+    event_loop.run_app(&mut app).unwrap();
 }
