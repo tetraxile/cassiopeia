@@ -30,6 +30,9 @@ impl Camera {
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct CameraUniform {
     view_proj: [[f32; 4]; 4],
+    time: f32,
+    zoom: f32,
+    padding: [u8; 8],
 }
 
 impl CameraUniform {
@@ -37,11 +40,22 @@ impl CameraUniform {
         use cgmath::SquareMatrix;
         Self {
             view_proj: cgmath::Matrix4::identity().into(),
+            time: 0.0,
+            zoom: 1.0,
+            padding: [0; 8],
         }
     }
 
     pub fn update_view_proj(&mut self, camera: &Camera) {
         self.view_proj = camera.build_view_projection_matrix().into();
+    }
+
+    pub fn update_time(&mut self, time: f32) {
+        self.time = time;
+    }
+
+    pub fn update_zoom(&mut self, zoom: f32) {
+        self.zoom = zoom;
     }
 }
 

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use wgpu::util::DeviceExt;
 use winit::application::ApplicationHandler;
-use winit::event::{ElementState, KeyEvent, MouseButton, WindowEvent};
+use winit::event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, OwnedDisplayHandle};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::platform::x11::{WindowAttributesExtX11, WindowType};
@@ -12,12 +12,16 @@ use crate::gui::camera::{Camera, CameraController, CameraUniform};
 
 struct StateCAS {
     mouse_left_held: bool,
+    zoom: f32,
+    target: (f32, f32),
 }
 
 impl Default for StateCAS {
     fn default() -> Self {
         Self {
             mouse_left_held: false,
+            zoom: 1.0,
+            target: (0.0, 0.0),
         }
     }
 }
@@ -25,13 +29,13 @@ impl Default for StateCAS {
 #[repr(C)]
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
-    position: [f32; 3],
-    colour: [f32; 3],
+    position: [f32; 2],
+    coord: [f32; 2],
 }
 
 impl Vertex {
     const ATTRIBS: [wgpu::VertexAttribute; 2] =
-        wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3];
+        wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2];
 
     fn desc() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
@@ -42,39 +46,6 @@ impl Vertex {
     }
 }
 
-#[rustfmt::skip]
-const VERTICES: &[Vertex] = &[
-    Vertex { position: [ 1.0,  1.0,  1.0], colour: [1.0, 1.0, 1.0] }, // RUF
-    Vertex { position: [ 1.0,  1.0, -1.0], colour: [1.0, 1.0, 0.0] }, // RUB
-    Vertex { position: [ 1.0, -1.0,  1.0], colour: [1.0, 0.0, 1.0] }, // RDF
-    Vertex { position: [ 1.0, -1.0, -1.0], colour: [1.0, 0.0, 0.0] }, // RDB
-    Vertex { position: [-1.0,  1.0,  1.0], colour: [0.0, 1.0, 1.0] }, // LUF
-    Vertex { position: [-1.0,  1.0, -1.0], colour: [0.0, 1.0, 0.0] }, // LUB
-    Vertex { position: [-1.0, -1.0,  1.0], colour: [0.0, 0.0, 1.0] }, // LDF
-    Vertex { position: [-1.0, -1.0, -1.0], colour: [0.0, 0.0, 0.0] }, // LDB
-];
-
-#[rustfmt::skip]
-const INDICES: &[u16] = &[
-    5, 4, 1,
-    1, 4, 0,
-
-    0, 4, 2,
-    2, 4, 6,
-
-    1, 0, 3,
-    3, 0, 2,
-
-    5, 1, 7,
-    7, 1, 3,
-
-    4, 5, 7,
-    4, 7, 6,
-
-    6, 7, 2,
-    2, 7, 3,
-];
-
 struct AppState {
     instance: wgpu::Instance,
     window: Arc<Window>,
@@ -84,6 +55,8 @@ struct AppState {
     size: winit::dpi::PhysicalSize<u32>,
     surface_format: wgpu::TextureFormat,
     render_pipeline: wgpu::RenderPipeline,
+
+    screen_quad_vertices: [Vertex; 4],
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     num_indices: u32,
@@ -94,11 +67,14 @@ struct AppState {
     camera_bind_group: wgpu::BindGroup,
     camera_controller: CameraController,
 
+    start_time: std::time::Instant,
     state_cas: StateCAS,
 }
 
 impl AppState {
     async fn new(display: OwnedDisplayHandle, window: Arc<Window>) -> AppState {
+        let state_cas = StateCAS::default();
+
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_with_display_handle(
             Box::new(display),
         ));
@@ -121,19 +97,34 @@ impl AppState {
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
 
+        let coords_range = (
+            size.width as f32 / (100.0 * state_cas.zoom * 2.0),
+            size.height as f32 / (100.0 * state_cas.zoom * 2.0),
+        );
+
+        #[rustfmt::skip]
+        let screen_quad_vertices = [
+            Vertex { position: [ -1.0, -1.0 ], coord: [state_cas.target.0 - coords_range.0, state_cas.target.1 - coords_range.1] },
+            Vertex { position: [  1.0, -1.0 ], coord: [state_cas.target.0 + coords_range.0, state_cas.target.1 - coords_range.1] },
+            Vertex { position: [ -1.0,  1.0 ], coord: [state_cas.target.0 - coords_range.0, state_cas.target.1 + coords_range.1] },
+            Vertex { position: [  1.0,  1.0 ], coord: [state_cas.target.0 + coords_range.0, state_cas.target.1 + coords_range.1] },
+        ];
+
+        let indices: &[u16] = &[0, 1, 2, 1, 3, 2];
+
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("vertex buffer"),
-            contents: bytemuck::cast_slice(VERTICES),
-            usage: wgpu::BufferUsages::VERTEX,
+            contents: bytemuck::cast_slice(&screen_quad_vertices),
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
         });
 
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("index buffer"),
-            contents: bytemuck::cast_slice(INDICES),
+            contents: bytemuck::cast_slice(indices),
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        let num_indices = INDICES.len() as u32;
+        let num_indices = indices.len() as u32;
 
         use cgmath::Angle;
         let camera = Camera {
@@ -151,8 +142,12 @@ impl AppState {
             zfar: 100.0,
         };
 
+        let start_time = std::time::Instant::now();
+
         let mut camera_uniform = CameraUniform::new();
         camera_uniform.update_view_proj(&camera);
+        camera_uniform.update_time(start_time.elapsed().as_secs_f32());
+        // camera_uniform.update_window_size(size.width, size.height);
 
         let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("camera buffer"),
@@ -165,7 +160,7 @@ impl AppState {
                 label: Some("camera bind group layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
@@ -238,15 +233,20 @@ impl AppState {
             size,
             surface_format,
             render_pipeline,
+
+            screen_quad_vertices,
             vertex_buffer,
             index_buffer,
             num_indices,
+
             camera,
             camera_uniform,
             camera_buffer,
             camera_bind_group,
             camera_controller: CameraController::new(0.2),
-            state_cas: Default::default(),
+
+            start_time,
+            state_cas,
         };
 
         state.configure_surface();
@@ -287,9 +287,43 @@ impl AppState {
         }
     }
 
+    fn handle_scroll(&mut self, delta: MouseScrollDelta) {
+        match delta {
+            MouseScrollDelta::LineDelta(_dx, dy) => {
+                self.state_cas.zoom *= dy / 10.0 + 1.0;
+                self.update_screen_quad_vertices();
+            }
+            MouseScrollDelta::PixelDelta(_) => todo!(),
+        }
+    }
+
+    fn update_screen_quad_vertices(&mut self) {
+        let coords_range = (
+            self.size.width as f32 / (100.0 * self.state_cas.zoom * 2.0),
+            self.size.height as f32 / (100.0 * self.state_cas.zoom * 2.0),
+        );
+
+        #[rustfmt::skip]
+        let screen_quad_vertices = [
+            Vertex { position: [ -1.0, -1.0 ], coord: [self.state_cas.target.0 - coords_range.0, self.state_cas.target.1 - coords_range.1] },
+            Vertex { position: [  1.0, -1.0 ], coord: [self.state_cas.target.0 + coords_range.0, self.state_cas.target.1 - coords_range.1] },
+            Vertex { position: [ -1.0,  1.0 ], coord: [self.state_cas.target.0 - coords_range.0, self.state_cas.target.1 + coords_range.1] },
+            Vertex { position: [  1.0,  1.0 ], coord: [self.state_cas.target.0 + coords_range.0, self.state_cas.target.1 + coords_range.1] },
+        ];
+
+        self.queue.write_buffer(
+            &self.vertex_buffer,
+            0,
+            bytemuck::cast_slice(&screen_quad_vertices),
+        );
+    }
+
     fn update(&mut self) {
         self.camera_controller.update_camera(&mut self.camera);
         self.camera_uniform.update_view_proj(&self.camera);
+        self.camera_uniform
+            .update_time(self.start_time.elapsed().as_secs_f32());
+        self.camera_uniform.update_zoom(self.state_cas.zoom);
         self.queue.write_buffer(
             &self.camera_buffer,
             0,
@@ -335,9 +369,9 @@ impl AppState {
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 0.3,
-                        g: 0.3,
-                        b: 0.4,
+                        r: 1.0,
+                        g: 0.0,
+                        b: 1.0,
                         a: 1.0,
                     }),
                     store: wgpu::StoreOp::Store,
@@ -352,6 +386,7 @@ impl AppState {
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        // render_pass.draw(0..6, 0..1);
         render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
         render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
 
@@ -387,6 +422,29 @@ impl ApplicationHandler for App {
         )));
     }
 
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: winit::event::DeviceId,
+        event: winit::event::DeviceEvent,
+    ) {
+        let state = if let Some(state) = &mut self.state_app {
+            state
+        } else {
+            return;
+        };
+        match event {
+            winit::event::DeviceEvent::MouseMotion { delta } => {
+                if state.state_cas.mouse_left_held {
+                    state.state_cas.target.0 -= delta.0 as f32 / (100.0 * state.state_cas.zoom);
+                    state.state_cas.target.1 += delta.1 as f32 / (100.0 * state.state_cas.zoom);
+                    state.update_screen_quad_vertices();
+                }
+            }
+            _ => {}
+        }
+    }
+
     fn window_event(
         &mut self,
         event_loop: &ActiveEventLoop,
@@ -419,6 +477,7 @@ impl ApplicationHandler for App {
                     }
                 }
             }
+            WindowEvent::MouseWheel { delta, .. } => app_state.handle_scroll(delta),
             WindowEvent::KeyboardInput {
                 event:
                     KeyEvent {
